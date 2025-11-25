@@ -1,0 +1,10 @@
+streamlit
+tensorflow==2.15.0
+numpy
+soundfile
+librosa==0.10.1
+audio_recorder_streamlit
+edge-tts
+scipy
+pygame
+pydub
