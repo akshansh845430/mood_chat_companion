@@ -1,9 +1,8 @@
 # src/streamlit_app.py
-
 import streamlit as st
-import os
 import numpy as np
 import soundfile as sf
+import os
 from audio_recorder_streamlit import audio_recorder
 
 from models.predict import predict_emotion
@@ -11,10 +10,9 @@ from utils.emotion_responder import get_response
 from utils.tts_engine import speak
 from utils.user_name_memory import get_name, set_name, FILE as NAME_FILE
 
-
-# ------------------------------
-# CONFIG
-# ------------------------------
+# ===============================
+# PATHS
+# ===============================
 st.set_page_config(page_title="Mood Companion", layout="centered")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -24,106 +22,91 @@ ASSETS_DIR = os.path.join(BASE_DIR, "assets")
 
 os.makedirs(AUDIO_DIR, exist_ok=True)
 
-# Avatar paths
+# Fallback if GIF not found
+FALLBACK_AVATAR = "/mnt/data/Screenshot 2025-11-25 091414.png"
+
 AVATAR_MAP = {
-    "neutral": os.path.join(ASSETS_DIR, "avatar_neutral.gif"),
-    "happy": os.path.join(ASSETS_DIR, "avatar_happy.gif"),
-    "sad": os.path.join(ASSETS_DIR, "avatar_sad.gif"),
-    "angry": os.path.join(ASSETS_DIR, "avatar_angry.gif"),
+    "neutral": os.path.join(ASSETS_DIR, "avatar_neutral.gif")
+        if os.path.exists(os.path.join(ASSETS_DIR, "avatar_neutral.gif")) else FALLBACK_AVATAR,
+    "happy": os.path.join(ASSETS_DIR, "avatar_happy.gif")
+        if os.path.exists(os.path.join(ASSETS_DIR, "avatar_happy.gif")) else FALLBACK_AVATAR,
+    "sad": os.path.join(ASSETS_DIR, "avatar_sad.gif")
+        if os.path.exists(os.path.join(ASSETS_DIR, "avatar_sad.gif")) else FALLBACK_AVATAR,
+    "angry": os.path.join(ASSETS_DIR, "avatar_angry.gif")
+        if os.path.exists(os.path.join(ASSETS_DIR, "avatar_angry.gif")) else FALLBACK_AVATAR,
 }
 
+# ===============================
+# TITLE
+# ===============================
+st.markdown("<h1 style='text-align:center; color:#f3a742;'>Your Mood Companion</h1>", unsafe_allow_html=True)
 
-# ------------------------------
-# HEADER
-# ------------------------------
-st.markdown(
-    "<h1 style='text-align:center; color:#f3a742;'>Your Mood Companion</h1>",
-    unsafe_allow_html=True
-)
+# ===============================
+# UI LAYOUT
+# ===============================
+col1, col2 = st.columns(2)
 
-avatar_placeholder = st.empty()
-avatar_placeholder.image(AVATAR_MAP["neutral"], width=300)
+with col1:
+    avatar_placeholder = st.empty()
+    avatar_placeholder.image(AVATAR_MAP["neutral"], width=320)
+    emotion_box = st.empty()
+    probs_box = st.empty()
 
-status_box = st.empty()
-reply_box = st.empty()
+    st.markdown("---")
+    st.write("Saved name (optional):")
 
+    stored_name = get_name()
+    name_input = st.text_input("Your name", value=stored_name or "")
 
-# ------------------------------
-# NAME SETTINGS
-# ------------------------------
-st.markdown("---")
-st.subheader("Your Name (optional)")
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("Save"):
+            if name_input.strip():
+                set_name(name_input.strip())
+                st.success(f"Saved name: {name_input.strip()}")
+            else:
+                st.warning("Enter a valid name.")
 
-stored_name = get_name()
-name_input = st.text_input("Name", value=stored_name or "")
-
-colA, colB = st.columns(2)
-with colA:
-    if st.button("Save Name"):
-        if name_input.strip():
-            set_name(name_input.strip())
-            st.success(f"Saved: {name_input.strip()}")
-with colB:
-    if st.button("Forget Name"):
-        try:
+    with c2:
+        if st.button("Forget"):
             if os.path.exists(NAME_FILE):
                 os.remove(NAME_FILE)
-            st.success("Name removed.")
-        except:
-            pass
+            st.success("Name forgotten.")
 
+with col2:
+    st.write("🎙 Click below to record (browser mic):")
+    audio_bytes = audio_recorder(text="Record your voice", recording_color="#ff4f4f", neutral_color="#6aa84f")
 
-# ------------------------------
-# RECORD (browser-based)
-# ------------------------------
-st.markdown("---")
-st.subheader("🎙 Voice Input")
-
-st.write("Click the button below and speak. Works on phone + cloud.")
-
-audio_bytes = audio_recorder(
-    text="Click to record",
-    recording_color="#f3a742",
-    neutral_color="#cccccc",
-    icon_size="3x",
-)
-
+# ===============================
+# PROCESS RECORDED AUDIO
+# ===============================
 if audio_bytes:
-    st.success("Recorded successfully!")
+    st.info("Processing your voice...")
 
-    # save audio to wav
-    filepath = os.path.join(AUDIO_DIR, "ui_sample.wav")
-    with open(filepath, "wb") as f:
+    file_path = os.path.join(AUDIO_DIR, "ui_sample.wav")
+    with open(file_path, "wb") as f:
         f.write(audio_bytes)
 
-    # librosa needs wav → convert raw bytes to proper audio file
-    audio_data, samplerate = sf.read(filepath)
-    sf.write(filepath, audio_data, samplerate)
+    # Predict emotion
+    emotion, probs = predict_emotion(file_path, model_path=MODEL_PATH)
 
-    status_box.info("Analyzing your voice...")
+    if emotion:
+        avatar_placeholder.image(AVATAR_MAP.get(emotion, FALLBACK_AVATAR), width=320)
 
-    # predict emotion
-    emotion, probs = predict_emotion(filepath, model_path=MODEL_PATH)
+        emotion_box.success(f"Detected Emotion: **{emotion.capitalize()}**")
+        probs_box.write(probs)
 
-    if emotion is None:
-        status_box.error("Could not detect emotion.")
-    else:
-        avatar_placeholder.image(AVATAR_MAP.get(emotion, AVATAR_MAP["neutral"]), width=300)
-
-        status_box.success(f"Detected Emotion: **{emotion.capitalize()}**")
-
-        # generate response
+        # Response + personalization
         reply = get_response(emotion)
+        user = get_name()
 
-        # personalize
-        saved_name = get_name()
-        if saved_name:
-            reply = f"{saved_name}, {reply[0].lower()}{reply[1:]}"
+        if user:
+            reply = f"{user}, {reply[0].lower()}{reply[1:]}" if reply else reply
 
-        reply_box.markdown(f"### 💬 Assistant: {reply}")
+        st.markdown("### 💬 Assistant:")
+        st.write(reply)
 
-        # speak
-        try:
-            speak(reply)
-        except Exception as e:
-            st.error(f"TTS Error: {e}")
+        # Speak reply
+        speak(reply)
+    else:
+        st.error("Could not detect emotion. Try again.")
