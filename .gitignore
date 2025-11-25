@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.wav
+*.npy
+*.h5
+*.tmp
+audio_samples/
+data/ravdess_raw/
+env/
+venv/
+*.mp3
+.DS_Store
+.streamlit/
