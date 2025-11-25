@@ -1,34 +1,35 @@
-# Mood Companion – Voice Emotion Recognition Web App
+# Mood Companion – Emotion-Based Voice Interaction App
 
-Mood Companion is an AI-powered emotional assistant that:
-- Listens to 4 seconds of your voice (browser recording)
-- Predicts your emotion (Happy, Sad, Angry, Neutral)
-- Responds with personalized, human-like speech using neural TTS
-- Displays an animated avatar for each emotion
-- Saves your name for personal replies
+A Streamlit + TensorFlow application that:
+- records user voice (browser-based)
+- extracts MFCC features
+- predicts emotion (happy, sad, angry, neutral)
+- displays emotion-specific animated avatars
+- personalizes replies using user name memory
+- speaks replies using neural TTS (edge-tts)
 
-Built with: TensorFlow, Librosa, Streamlit, Edge-TTS, Python
+## Features
+- 🎙 Browser-based voice recording (no sounddevice needed)
+- 🤖 Custom-trained RAVDESS audio emotion model (LSTM)
+- 🧠 Personalized responses with name memory
+- 🎭 Animated GIF avatars based on emotion
+- 🔊 Edge-TTS neural voice output
+- 🌐 Fully deployable on Render
 
----
+## Tech Stack
+- Python, TensorFlow, Keras
+- Librosa (MFCC extraction)
+- Streamlit (UI)
+- audio-recorder-streamlit (browser audio)
+- edge-tts (text-to-speech)
+- Soundfile, FFmpeg
+- Render Cloud Hosting
 
-## 🚀 Features
+## Deployment
+1. Push this repo to GitHub.
+2. Create a new Render Web Service.
+3. Connect your repository.
+4. Render auto-detects render.yaml.
+5. Deployment finishes automatically.
 
-### 🎙 Voice Input (Browser)
-Uses `audio_recorder_streamlit` — works on phone, laptop, and browser.
-
-### 🧠 Emotion Detection
-Custom-trained LSTM model on MFCC features.
-
-### 🗣 AI Voice Reply
-Neural voice using `edge-tts`.
-
-### 😄 Animated Emotion Avatars
-Shows GIF avatars depending on detected emotion.
-
-### 🧑 Personalized Replies
-If user saves a name, AI replies with it.
-
----
-
-## 📂 Project Structure
-
+## Local development
